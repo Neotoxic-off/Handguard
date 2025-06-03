@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35806.99
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Handguard.Lib", "..\Handguard.Lib\Handguard.Lib.csproj", "{37AF99DF-9E07-4DA7-A65B-E3B84AC5FE4E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Handguard.Client", "..\Handguard.Client\Handguard.Client.csproj", "{7FC9BFA8-3F59-47F9-9EE8-8A8393FC58CB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{37AF99DF-9E07-4DA7-A65B-E3B84AC5FE4E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{37AF99DF-9E07-4DA7-A65B-E3B84AC5FE4E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{37AF99DF-9E07-4DA7-A65B-E3B84AC5FE4E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{37AF99DF-9E07-4DA7-A65B-E3B84AC5FE4E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7FC9BFA8-3F59-47F9-9EE8-8A8393FC58CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7FC9BFA8-3F59-47F9-9EE8-8A8393FC58CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7FC9BFA8-3F59-47F9-9EE8-8A8393FC58CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7FC9BFA8-3F59-47F9-9EE8-8A8393FC58CB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D74E3997-69DC-4673-B2FE-5309117EEAB8}
+	EndGlobalSection
+EndGlobal
