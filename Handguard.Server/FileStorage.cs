@@ -1,53 +1,49 @@
-using System.Security.Cryptography;
-
-namespace Handguard.Server;
-
 public static class FileStorage
 {
-    private static readonly string DirectoryPath = Path.Combine(AppContext.BaseDirectory, "Files");
+    private static readonly string StorageDir = Path.Combine(AppContext.BaseDirectory, "storage");
 
     static FileStorage()
     {
-        Directory.CreateDirectory(DirectoryPath);
+        if (!Directory.Exists(StorageDir))
+            Directory.CreateDirectory(StorageDir);
     }
 
-    public static async Task<string> SaveAsync(IFormFile file, string pass)
+    public static async Task<string> SaveAsync(IFormFile file, string password)
     {
         string id = Guid.NewGuid().ToString("N");
-        string filePath = Path.Combine(DirectoryPath, id);
-        string metaPath = filePath + ".meta";
+        string filePath = Path.Combine(StorageDir, id + ".dat");
+        string metadataPath = Path.Combine(StorageDir, id + ".meta");
 
-        await using var stream = new FileStream(filePath, FileMode.Create);
-        await file.CopyToAsync(stream);
+        using (FileStream fs = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(fs);
+        }
 
-        await File.WriteAllTextAsync(metaPath, pass ?? "");
-
+        await File.WriteAllTextAsync(metadataPath, password);
         return id;
     }
 
-    public static (Stream Stream, string FileName, string ContentType)? Get(string id, string pass)
+    public static (Stream Stream, string FileName, string ContentType)? Get(string id, string password)
     {
-        string filePath = Path.Combine(DirectoryPath, id);
-        string metaPath = filePath + ".meta";
+        if (!IsValidId(id))
+            return null;
 
-        if (!File.Exists(filePath) || !File.Exists(metaPath)) return null;
+        string filePath = Path.Combine(StorageDir, id + ".dat");
+        string metadataPath = Path.Combine(StorageDir, id + ".meta");
 
-        var storedPass = File.ReadAllText(metaPath);
-        if (storedPass != (pass ?? "")) return null;
+        if (!File.Exists(filePath) || !File.Exists(metadataPath))
+            return null;
 
-        return (File.OpenRead(filePath), Path.GetFileName(filePath), "application/octet-stream");
+        string storedPass = File.ReadAllText(metadataPath);
+        if (storedPass != password)
+            return null;
+
+        FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+        return (stream, id + ".bin", "application/octet-stream");
     }
 
-    public static void CleanupOldFiles()
+    private static bool IsValidId(string id)
     {
-        foreach (var file in Directory.GetFiles(DirectoryPath))
-        {
-            if (File.GetCreationTime(file).Date < DateTime.Now.Date)
-            {
-                File.Delete(file);
-                var meta = file + ".meta";
-                if (File.Exists(meta)) File.Delete(meta);
-            }
-        }
+        return id.All(c => char.IsLetterOrDigit(c) || c == '-');
     }
 }
