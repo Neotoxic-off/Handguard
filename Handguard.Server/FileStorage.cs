@@ -8,6 +8,21 @@ public static class FileStorage
             Directory.CreateDirectory(StorageDir);
     }
 
+    public static void CleanupOldFiles(TimeSpan maxAge)
+    {
+        string[] files = Directory.GetFiles(StorageDir);
+        DateTime threshold = DateTime.UtcNow.Subtract(maxAge);
+
+        foreach (string file in files)
+        {
+            DateTime lastWrite = File.GetLastWriteTimeUtc(file);
+            if (lastWrite < threshold)
+            {
+                File.Delete(file);
+            }
+        }
+    }
+
     public static async Task<string> SaveAsync(IFormFile file, string password)
     {
         string id = Guid.NewGuid().ToString("N");

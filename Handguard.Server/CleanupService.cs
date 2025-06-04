@@ -12,7 +12,7 @@ public class CleanupService : BackgroundService
             var delay = nextRun - now;
             await Task.Delay(delay, stoppingToken);
 
-            FileStorage.CleanupOldFiles();
+            FileStorage.CleanupOldFiles(TimeSpan.FromHours(24));
         }
     }
 }

@@ -32,7 +32,7 @@ app.MapPost("/upload", async (HttpRequest request) =>
         return Results.BadRequest("Password is required.");
 
     string id = await FileStorage.SaveAsync(file, password);
-    return Results.Ok(new { id = id });
+    return Results.Ok(new { id = id, pass = password });
 });
 
 app.MapGet("/download", async (HttpRequest request) =>

@@ -21,12 +21,12 @@ namespace Handguard.Client.ViewModels
         [ObservableProperty]
         private string? _statusMessage;
 
-        private readonly string _host = "google.com";
+        private readonly string _host = "127.0.0.1:5000";
         private readonly int _timeout = 5000;
 
         public MainViewModel()
         {
-            CheckServerStatus();
+            //CheckServerStatus();
         }
 
         [RelayCommand]
