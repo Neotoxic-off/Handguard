@@ -1,4 +1,7 @@
-public static class Settings
+namespace Handguard.Server
 {
-    private static readonly string StorageDir = Path.Combine(AppContext.BaseDirectory, "storage");
+    public static class Settings
+    {
+        public static readonly string StorageDir = Path.Combine(AppContext.BaseDirectory, "storage");
+    }
 }

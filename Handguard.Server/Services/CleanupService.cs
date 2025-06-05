@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Handguard.Server
 {
-    public class CleanupService : BackgroundService
+    public partial class CleanupService : BackgroundService
     {
         private static readonly object FileLock = new object();
 

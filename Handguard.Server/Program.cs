@@ -2,6 +2,7 @@ using Handguard.Server;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc; // For Results.File()
 using System.IO;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
