@@ -6,13 +6,11 @@ using System.Threading.Tasks;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-// Set max upload size to 20 GB
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 20L * 1024 * 1024 * 1024; // 20 GB
+    options.MultipartBodyLengthLimit = 10L * 1024 * 1024 * 1024;
 });
 
-// Register cleanup background service
 builder.Services.AddHostedService<CleanupService>();
 
 WebApplication app = builder.Build();
@@ -25,13 +23,10 @@ app.MapPost("/upload", async (HttpRequest request) =>
         return Results.BadRequest("No file uploaded.");
 
     IFormFile file = request.Form.Files[0];
-    Microsoft.Extensions.Primitives.StringValues passValues = request.Form["pass"];
-    string password = passValues.ToString();
 
-    if (string.IsNullOrEmpty(password))
-        return Results.BadRequest("Password is required.");
-
+    string password = Convert.ToHexString(RandomNumberGenerator.GetBytes(16));
     string id = await FileStorage.SaveAsync(file, password);
+
     return Results.Ok(new { id = id, pass = password });
 });
 

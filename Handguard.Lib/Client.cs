@@ -15,10 +15,6 @@ namespace Handguard.Lib
 
         public static async Task<Dictionary<string, string>?> UploadSecureAsync(string zipFilePath, string serverUrl, Action<long>? progressCallback = null)
         {
-            string date = DateTime.Now.ToString("yyyyMMddhhmmss");
-            long ticks = Environment.TickCount64;
-            string user = Environment.UserName;
-            string? password = Utils.Sha256.Hash($"{user}:{date}:{ticks}");
             string? json = null;
 
             using HttpClient httpClient = new HttpClient();
@@ -28,7 +24,6 @@ namespace Handguard.Lib
             HttpResponseMessage? response = null;
 
             form.Add(streamContent, "file", Path.GetFileName(zipFilePath));
-            form.Add(new StringContent(password), "pass");
             response = await httpClient.PostAsync($"{serverUrl}/upload", form);
             response.EnsureSuccessStatusCode();
             json = await response.Content.ReadAsStringAsync();

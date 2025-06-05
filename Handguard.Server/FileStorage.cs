@@ -1,64 +1,73 @@
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.AspNetCore.Http;
+using Handguard.Services;
+
 public static class FileStorage
 {
-    private static readonly string StorageDir = Path.Combine(AppContext.BaseDirectory, "storage");
-
     static FileStorage()
     {
-        if (!Directory.Exists(StorageDir))
-            Directory.CreateDirectory(StorageDir);
-    }
-
-    public static void CleanupOldFiles(TimeSpan maxAge)
-    {
-        string[] files = Directory.GetFiles(StorageDir);
-        DateTime threshold = DateTime.UtcNow.Subtract(maxAge);
-
-        foreach (string file in files)
-        {
-            DateTime lastWrite = File.GetLastWriteTimeUtc(file);
-            if (lastWrite < threshold)
-            {
-                File.Delete(file);
-            }
-        }
+        if (!Directory.Exists(Settings.StorageDir))
+            Directory.CreateDirectory(Settings.StorageDir);
     }
 
     public static async Task<string> SaveAsync(IFormFile file, string password)
     {
-        string id = Guid.NewGuid().ToString("N");
-        string filePath = Path.Combine(StorageDir, id + ".dat");
-        string metadataPath = Path.Combine(StorageDir, id + ".meta");
-
-        using (FileStream fs = new FileStream(filePath, FileMode.Create))
+        return await CleanupService.EnterFileCriticalSectionAsync(async () =>
         {
-            await file.CopyToAsync(fs);
-        }
+            string timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
+            string rawId = timestamp + Guid.NewGuid().ToString("N")[..8];
+            string id = Sha256Hex(rawId)[..32];
 
-        await File.WriteAllTextAsync(metadataPath, password);
-        return id;
+            string filePath = Path.Combine(Settings.StorageDir, id + ".dat");
+            string metadataPath = Path.Combine(Settings.StorageDir, id + ".meta");
+
+            using FileStream fs = new FileStream(filePath, FileMode.CreateNew);
+            await file.CopyToAsync(fs);
+            await File.WriteAllTextAsync(metadataPath, password);
+
+            return id;
+        });
     }
 
     public static (Stream Stream, string FileName, string ContentType)? Get(string id, string password)
     {
-        if (!IsValidId(id))
-            return null;
+        (Stream, string, string)? result = null;
 
-        string filePath = Path.Combine(StorageDir, id + ".dat");
-        string metadataPath = Path.Combine(StorageDir, id + ".meta");
+        CleanupService.EnterFileCriticalSection(() =>
+        {
+            if (!IsValidId(id))
+                return;
 
-        if (!File.Exists(filePath) || !File.Exists(metadataPath))
-            return null;
+            string filePath = Path.Combine(Settings.StorageDir, id + ".dat");
+            string metadataPath = Path.Combine(Settings.StorageDir, id + ".meta");
 
-        string storedPass = File.ReadAllText(metadataPath);
-        if (storedPass != password)
-            return null;
+            if (!File.Exists(filePath) || !File.Exists(metadataPath))
+                return;
 
-        FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-        return (stream, id + ".bin", "application/octet-stream");
+            string storedPass = File.ReadAllText(metadataPath);
+            if (storedPass != password)
+                return;
+
+            FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+            result = (stream, id + ".bin", "application/octet-stream");
+        });
+
+        return result;
     }
 
     private static bool IsValidId(string id)
     {
-        return id.All(c => char.IsLetterOrDigit(c) || c == '-');
+        return id.All(c => char.IsLetterOrDigit(c));
+    }
+
+    private static string Sha256Hex(string input)
+    {
+        using SHA256 sha256 = SHA256.Create();
+        byte[] hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
+        StringBuilder sb = new StringBuilder();
+        foreach (byte b in hash)
+            sb.Append(b.ToString("x2"));
+        return sb.ToString();
     }
 }
