@@ -5,7 +5,6 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Handguard.Client"
         xmlns:vm="clr-namespace:Handguard.Client.ViewModels"
-        xmlns:views="clr-namespace:Handguard.Client.Views"
         mc:Ignorable="d"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
@@ -26,10 +25,19 @@
         <Grid Grid.Row="0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="50"/>
             </Grid.ColumnDefinitions>
 
-            <Button Grid.Column="1" BorderThickness="0" Style="{StaticResource BorderButton}" Command="{Binding SettingsCommand}" Height="30" Width="30">
+            <TextBox Grid.Column="0" Height="30" Width="150" Text="{Binding Id}">
+                
+            </TextBox>
+
+            <TextBox Grid.Column="1" Height="30" Width="150" Text="{Binding Password}">
+
+            </TextBox>
+
+            <Button Grid.Column="2" BorderThickness="0" Style="{StaticResource BorderButton}" Command="{Binding SettingsCommand}" Height="30" Width="30">
                 <Path Stretch="Uniform" Fill="White" Width="15" Height="15" Data="{StaticResource Settings}"/>
             </Button>
         </Grid>
@@ -40,8 +48,13 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <views:UploadView Grid.Column="0" Margin="50,0,0,0"/>
-            <views:DownloadView Grid.Column="1" Margin="0,0,50,0"/>
+            <Button Grid.Column="0" Margin="50,0,0,0" Style="{StaticResource BorderButton}" BorderThickness="0" Height="80" Width="80" Command="{Binding UploadCommand}">
+                <Path Data="{StaticResource Upload}" Fill="White" Height="50" Width="50" Stretch="Uniform"/>
+            </Button>
+
+            <Button Grid.Column="1" Margin="0,0,50,0" Style="{StaticResource BorderButton}" BorderThickness="0" Height="80" Width="80" Command="{Binding DownloadCommand}">
+                <Path Data="{StaticResource Download}" Fill="White" Height="50" Width="50" Stretch="Uniform"/>
+            </Button>
         </Grid>
     </Grid>
 </Window>

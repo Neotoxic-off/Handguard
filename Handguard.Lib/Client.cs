@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -13,43 +14,56 @@ namespace Handguard.Lib
         private const int MinBufferSize = 8192;
         private const int MaxBufferSize = 262144;
 
-        public static async Task<Dictionary<string, string>?> UploadSecureAsync(string zipFilePath, string serverUrl, Action<long>? progressCallback = null)
+        public static async Task<Dictionary<string, string>?> UploadSecureAsync(string filePath, string serverUrl, Action<long>? progressCallback = null)
         {
-            string? json = null;
-
             using HttpClient httpClient = new HttpClient();
             using MultipartFormDataContent form = new MultipartFormDataContent();
-            using FileStream fileStream = File.OpenRead(zipFilePath);
-            StreamContent streamContent = new StreamContent(fileStream);
-            HttpResponseMessage? response = null;
 
-            form.Add(streamContent, "file", Path.GetFileName(zipFilePath));
-            response = await httpClient.PostAsync($"{serverUrl}/upload", form);
+            using FileStream fileStream = File.OpenRead(filePath);
+            using StreamContent rawContent = new StreamContent(fileStream);
+            using StreamWithProgressContent uploadContent = new StreamWithProgressContent(rawContent, progressCallback);
+
+            uploadContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+
+            form.Add(uploadContent, "file", Path.GetFileName(filePath));
+
+            using HttpResponseMessage response = await httpClient.PostAsync($"{serverUrl}/upload", form);
             response.EnsureSuccessStatusCode();
-            json = await response.Content.ReadAsStringAsync();
 
+            string json = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<Dictionary<string, string>>(json);
         }
 
-        public static async Task DownloadSecureAsync(string id, string password, string serverUrl, string saveToPath)
+        public static async Task DownloadSecureAsync(string id, string password, string serverUrl, string saveToDir)
         {
-            FileStream? fs = null;
             using HttpClient httpClient = new HttpClient();
             string url = $"{serverUrl}/download?id={WebUtility.UrlEncode(id)}&pass={WebUtility.UrlEncode(password)}";
-            HttpResponseMessage response = await httpClient.GetAsync(url);
 
-            if (response.IsSuccessStatusCode)
-            {
-                fs = new FileStream(saveToPath, FileMode.Create, FileAccess.Write);
-                await response.Content.CopyToAsync(fs);
-            }
+            using HttpResponseMessage response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+            if (!response.IsSuccessStatusCode)
+                throw new HttpRequestException($"Download failed with status code {response.StatusCode}");
+
+            string? fileName = null;
+            if (response.Content.Headers.ContentDisposition?.FileNameStar != null)
+                fileName = response.Content.Headers.ContentDisposition.FileNameStar;
+            else if (response.Content.Headers.ContentDisposition?.FileName != null)
+                fileName = response.Content.Headers.ContentDisposition.FileName;
+
+            if (string.IsNullOrWhiteSpace(fileName))
+                fileName = $"{id}.bin";
+
+            string savePath = Path.Combine(saveToDir, fileName);
+
+            await using Stream responseStream = await response.Content.ReadAsStreamAsync();
+            await using FileStream fs = new FileStream(savePath, FileMode.Create, FileAccess.Write);
+            await responseStream.CopyToAsync(fs);
         }
 
         private class StreamWithProgressContent : HttpContent
         {
             private readonly HttpContent _originalContent;
             private readonly Action<long>? _progress;
-            private int _currentBufferSize = MinBufferSize;
+            private int _bufferSize = MinBufferSize;
 
             public StreamWithProgressContent(HttpContent content, Action<long>? progress)
             {
@@ -57,36 +71,28 @@ namespace Handguard.Lib
                 _progress = progress;
 
                 foreach (KeyValuePair<string, IEnumerable<string>> header in _originalContent.Headers)
-                {
                     Headers.TryAddWithoutValidation(header.Key, header.Value);
-                }
             }
 
             protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context)
             {
-                int bytesRead = 0;
-                bool running = true;
-                long totalUploaded = 0;
-                byte[] buffer = new byte[0];
+                long total = 0;
+                byte[] buffer = new byte[_bufferSize];
+
                 using Stream inputStream = await _originalContent.ReadAsStreamAsync();
 
-                while (running == true)
+                while (true)
                 {
-                    buffer = new byte[_currentBufferSize];
-                    bytesRead = await inputStream.ReadAsync(buffer, 0, _currentBufferSize);
-                    if (bytesRead > 0)
-                    {
-                        await stream.WriteAsync(buffer, 0, bytesRead);
-                        totalUploaded += bytesRead;
-                        _progress?.Invoke(totalUploaded);
+                    int read = await inputStream.ReadAsync(buffer, 0, buffer.Length);
+                    if (read <= 0)
+                        break;
 
-                        if (_currentBufferSize < MaxBufferSize)
-                            _currentBufferSize = Math.Min(_currentBufferSize * 2, MaxBufferSize);
-                    }
-                    else
-                    {
-                        running = false;
-                    }
+                    await stream.WriteAsync(buffer, 0, read);
+                    total += read;
+                    _progress?.Invoke(total);
+
+                    if (_bufferSize < MaxBufferSize)
+                        _bufferSize = Math.Min(_bufferSize * 2, MaxBufferSize);
                 }
             }
 

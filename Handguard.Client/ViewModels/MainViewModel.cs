@@ -21,12 +21,43 @@ namespace Handguard.Client.ViewModels
         [ObservableProperty]
         private string? _statusMessage;
 
-        private readonly string _host = "127.0.0.1:5000";
+        [ObservableProperty]
+        private string? _id;
+
+        [ObservableProperty]
+        private string? _password;
+
+        [ObservableProperty]
+        private string _host = "http://127.0.0.1:5000";
+
         private readonly int _timeout = 5000;
 
         public MainViewModel()
         {
             //CheckServerStatus();
+        }
+
+        [RelayCommand]
+        private async Task Upload()
+        {
+            string file = @"C:\Users\paulg\Downloads\Five.Nights.at.Freddys.rar";
+            Dictionary<string, string>? result = await Lib.Client.UploadSecureAsync(file, Host);
+            if (result == null)
+            {
+                return;
+            }
+            if (result.ContainsKey("id") && result.ContainsKey("pass"))
+            {
+                Id = result["id"];
+                Password = result["pass"];
+            }
+        }
+
+        [RelayCommand]
+        private async Task Download()
+        {
+            string file = @"C:\Users\paulg\Downloads";
+            await Lib.Client.DownloadSecureAsync(Id, Password, Host, file);
         }
 
         [RelayCommand]

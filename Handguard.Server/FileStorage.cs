@@ -25,7 +25,9 @@ namespace Handguard.Server
 
                 using FileStream fs = new FileStream(filePath, FileMode.CreateNew);
                 await file.CopyToAsync(fs);
-                await File.WriteAllTextAsync(metadataPath, password);
+
+                string metadata = $"{password}\n{file.FileName}";
+                await File.WriteAllTextAsync(metadataPath, metadata);
 
                 return id;
             });
@@ -46,12 +48,13 @@ namespace Handguard.Server
                 if (!File.Exists(filePath) || !File.Exists(metadataPath))
                     return;
 
-                string storedPass = File.ReadAllText(metadataPath);
-                if (storedPass != password)
+                string[] meta = File.ReadAllLines(metadataPath);
+                if (meta.Length < 2 || meta[0] != password)
                     return;
 
+                string originalFileName = meta[1];
                 FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-                result = (stream, id + ".bin", "application/octet-stream");
+                result = (stream, originalFileName, "application/octet-stream");
             });
 
             return result;
