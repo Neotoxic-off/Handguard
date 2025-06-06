@@ -14,7 +14,7 @@ namespace Handguard.Lib
         private const int MinBufferSize = 8192;
         private const int MaxBufferSize = 262144;
 
-        public static async Task<Dictionary<string, string>?> UploadSecureAsync(string filePath, string serverUrl, Action<long>? progressCallback = null)
+        public static async Task<string?> UploadSecureAsync(string filePath, string serverUrl, Action<long>? progressCallback = null)
         {
             using HttpClient httpClient = new HttpClient();
             using MultipartFormDataContent form = new MultipartFormDataContent();
@@ -30,8 +30,7 @@ namespace Handguard.Lib
             using HttpResponseMessage response = await httpClient.PostAsync($"{serverUrl}/upload", form);
             response.EnsureSuccessStatusCode();
 
-            string json = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+            return await response.Content.ReadAsStringAsync();
         }
 
         public static async Task DownloadSecureAsync(string id, string password, string serverUrl, string saveToDir)
@@ -50,7 +49,9 @@ namespace Handguard.Lib
                 fileName = response.Content.Headers.ContentDisposition.FileName;
 
             if (string.IsNullOrWhiteSpace(fileName))
+            {
                 fileName = $"{id}.bin";
+            }
 
             string savePath = Path.Combine(saveToDir, fileName);
 

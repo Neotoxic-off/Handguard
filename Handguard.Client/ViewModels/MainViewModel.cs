@@ -7,6 +7,9 @@ using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading;
 using System.Windows;
+using Newtonsoft.Json;
+using Microsoft.Win32;
+using System.Net.Http;
 
 namespace Handguard.Client.ViewModels
 {
@@ -30,33 +33,42 @@ namespace Handguard.Client.ViewModels
         [ObservableProperty]
         private string _host = "http://127.0.0.1:5000";
 
-        private readonly int _timeout = 5000;
+        private OpenFileDialog _fileDialog = new OpenFileDialog
+        {
+            Title = "Select a file",
+            Filter = "All Files (*.*)|*.*"
+        };
 
         public MainViewModel()
         {
-            //CheckServerStatus();
+            CheckServerStatus();
         }
 
         [RelayCommand]
         private async Task Upload()
         {
-            string file = @"C:\Users\paulg\Downloads\Five.Nights.at.Freddys.rar";
-            Dictionary<string, string>? result = await Lib.Client.UploadSecureAsync(file, Host);
-            if (result == null)
+            if (_fileDialog.ShowDialog().HasValue == true)
             {
-                return;
-            }
-            if (result.ContainsKey("id") && result.ContainsKey("pass"))
-            {
-                Id = result["id"];
-                Password = result["pass"];
+                string file = _fileDialog.FileName;
+                string? result = await Lib.Client.UploadSecureAsync(file, Host);
+                Lib.Models.UploadResponse? uploadResponse = null;
+
+                if (result is not null)
+                {
+                    uploadResponse = JsonConvert.DeserializeObject<Lib.Models.UploadResponse>(result);
+                    Id = uploadResponse?.Id;
+                    Password = uploadResponse?.Password;
+                }
             }
         }
 
         [RelayCommand]
         private async Task Download()
         {
-            string file = @"C:\Users\paulg\Downloads";
+            string file = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "Downloads"
+            );
             await Lib.Client.DownloadSecureAsync(Id, Password, Host, file);
         }
 
@@ -76,10 +88,18 @@ namespace Handguard.Client.ViewModels
 
         private async void CheckServerStatus()
         {
-            using Ping ping = new Ping();
-            PingReply reply = await ping.SendPingAsync(_host, _timeout);
- 
-            Online = (reply.Status == IPStatus.Success);
+            HttpClient _httpClient = new HttpClient();
+
+            try
+            {
+                HttpResponseMessage response = await _httpClient.GetAsync(_host);
+                Online = response.IsSuccessStatusCode;
+            }
+            catch (HttpRequestException)
+            {
+                Online = false;
+            }
         }
+
     }
 }
