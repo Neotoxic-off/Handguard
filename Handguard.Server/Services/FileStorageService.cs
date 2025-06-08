@@ -59,7 +59,7 @@ namespace Handguard.Server.Services
                     return null;
 
                 FileStream stream = new FileStream(dataPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                return new FileDownloadResult(stream, metadata.FileName, metadata.ContentType);
+                return new FileDownloadResult(stream, metadata.FileName, metadata.ContentType, metadata.FileSize);
             });
         }
 

@@ -33,31 +33,71 @@ namespace Handguard.Lib
             return await response.Content.ReadAsStringAsync();
         }
 
-        public static async Task DownloadSecureAsync(string id, string password, string serverUrl, string saveToDir)
+        public static async Task DownloadSecureAsync(string id, string password, string serverUrl, string saveToDir, Action<long>? progressCallback = null)
         {
-            using HttpClient httpClient = new HttpClient();
             string url = $"{serverUrl}/download?id={WebUtility.UrlEncode(id)}&pass={WebUtility.UrlEncode(password)}";
 
+            using HttpClient httpClient = new HttpClient();
             using HttpResponseMessage response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-            if (!response.IsSuccessStatusCode)
-                throw new HttpRequestException($"Download failed with status code {response.StatusCode}");
+
+            response.EnsureSuccessStatusCode();
 
             string? fileName = null;
-            if (response.Content.Headers.ContentDisposition?.FileNameStar != null)
-                fileName = response.Content.Headers.ContentDisposition.FileNameStar;
-            else if (response.Content.Headers.ContentDisposition?.FileName != null)
-                fileName = response.Content.Headers.ContentDisposition.FileName;
 
-            if (string.IsNullOrWhiteSpace(fileName))
+            if (response.Content.Headers.ContentDisposition != null)
+            {
+                if (!string.IsNullOrEmpty(response.Content.Headers.ContentDisposition.FileNameStar))
+                {
+                    fileName = response.Content.Headers.ContentDisposition.FileNameStar;
+                }
+                else if (!string.IsNullOrEmpty(response.Content.Headers.ContentDisposition.FileName))
+                {
+                    fileName = response.Content.Headers.ContentDisposition.FileName;
+                }
+            }
+
+            if (string.IsNullOrEmpty(fileName))
             {
                 fileName = $"{id}.bin";
+            }
+
+            if (fileName.StartsWith("\"") && fileName.EndsWith("\""))
+            {
+                fileName = fileName.Substring(1, fileName.Length - 2);
             }
 
             string savePath = Path.Combine(saveToDir, fileName);
 
             await using Stream responseStream = await response.Content.ReadAsStreamAsync();
             await using FileStream fs = new FileStream(savePath, FileMode.Create, FileAccess.Write);
-            await responseStream.CopyToAsync(fs);
+
+            byte[] buffer = new byte[8192];
+            long totalRead = 0;
+            int bytesRead;
+
+            while ((bytesRead = await responseStream.ReadAsync(buffer.AsMemory(0, buffer.Length))) > 0)
+            {
+                await fs.WriteAsync(buffer.AsMemory(0, bytesRead));
+                totalRead += bytesRead;
+                progressCallback?.Invoke(totalRead);
+            }
+        }
+
+        public static async Task<Models.FileInfoResponse?> GetFileInfoAsync(string id, string password, string serverUrl)
+        {
+            string url = $"{serverUrl}/info?id={WebUtility.UrlEncode(id)}&pass={WebUtility.UrlEncode(password)}";
+
+            using HttpClient httpClient = new HttpClient();
+            using HttpResponseMessage response = await httpClient.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            string json = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<Models.FileInfoResponse>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
         }
 
         private class StreamWithProgressContent : HttpContent
@@ -72,14 +112,15 @@ namespace Handguard.Lib
                 _progress = progress;
 
                 foreach (KeyValuePair<string, IEnumerable<string>> header in _originalContent.Headers)
+                {
                     Headers.TryAddWithoutValidation(header.Key, header.Value);
+                }
             }
 
             protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context)
             {
                 long total = 0;
                 byte[] buffer = new byte[_bufferSize];
-
                 using Stream inputStream = await _originalContent.ReadAsStreamAsync();
 
                 while (true)
@@ -93,7 +134,9 @@ namespace Handguard.Lib
                     _progress?.Invoke(total);
 
                     if (_bufferSize < MaxBufferSize)
+                    {
                         _bufferSize = Math.Min(_bufferSize * 2, MaxBufferSize);
+                    }
                 }
             }
 

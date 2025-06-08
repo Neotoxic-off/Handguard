@@ -10,16 +10,20 @@ namespace Handguard.Server.Endpoints
     {
         public static void MapDownloadEndpoints(this WebApplication app)
         {
-            app.MapGet("/download", async (HttpRequest request, FileStorageService storage, ILoggerFactory loggerFactory) =>
+            app.MapGet("/download", async (HttpContext context, FileStorageService storage, ILoggerFactory loggerFactory) =>
             {
                 var logger = loggerFactory.CreateLogger("DownloadEndpoints");
+                HttpRequest request = context.Request;
+                HttpResponse response = context.Response;
 
                 (string id, string password) = ExtractDownloadParameters(request);
 
                 if (!IsValidDownloadRequest(id, password))
                 {
                     logger.LogWarning(Messages.Log_DownloadInvalidRequest, id);
-                    return Results.BadRequest(Messages.Download_InvalidRequest);
+                    response.StatusCode = StatusCodes.Status400BadRequest;
+                    await response.WriteAsync(Messages.Download_InvalidRequest);
+                    return;
                 }
 
                 FileDownloadResult? result = await storage.GetFileAsync(id, password);
@@ -27,17 +31,18 @@ namespace Handguard.Server.Endpoints
                 if (result == null)
                 {
                     logger.LogWarning(Messages.Log_DownloadFailed, id);
-                    return Results.BadRequest(Messages.Download_NotFound);
+                    response.StatusCode = StatusCodes.Status400BadRequest;
+                    await response.WriteAsync(Messages.Download_NotFound);
+                    return;
                 }
 
                 logger.LogInformation(Messages.Log_DownloadSuccess, id);
 
-                return Results.File(
-                    result.Stream,
-                    result.ContentType,
-                    result.FileName,
-                    enableRangeProcessing: true
-                );
+                response.ContentType = result.ContentType;
+                response.ContentLength = result.Length;
+                response.Headers.ContentDisposition = $"attachment; filename=\"{result.FileName}\"";
+
+                await result.Stream.CopyToAsync(response.Body);
             });
         }
 

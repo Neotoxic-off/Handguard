@@ -29,5 +29,6 @@ app.MapGet("/", () => Results.Ok("Handguard server is running"));
 
 app.MapUploadEndpoints();
 app.MapDownloadEndpoints();
+app.MapInformationEndpoints();
 
 app.Run();
