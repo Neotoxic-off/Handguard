@@ -16,27 +16,31 @@
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0" Background="{StaticResource Button.Static.Border}">
-                <Label Content="Downloads" VerticalAlignment="Center" FontSize="20" FontWeight="Bold"/>
+                <Label Content="Download" VerticalAlignment="Center" FontSize="20" FontWeight="Bold"/>
             </Grid>
 
             <Grid Grid.Row="1" Background="{StaticResource Button.Static.Background}">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="30"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <Label Grid.Column="0" Content="Download folder" VerticalAlignment="Center" FontWeight="Bold"/>
-                <Label Grid.Column="1" Content="{Binding DownloadFolder}" VerticalAlignment="Center"/>
+                <Path Data="{StaticResource Folder}" Fill="White" Height="20" Width="20" Stretch="Uniform"/>
+                <Label Grid.Column="1" Content="Folder" VerticalAlignment="Center" FontWeight="Bold"/>
+                <Label Grid.Column="2" Content="{Binding DownloadFolder}" VerticalAlignment="Center"/>
             </Grid>
 
             <Grid Grid.Row="2" Background="{StaticResource Button.Static.Border}">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="30"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <Label Grid.Column="0" Content="Download speed" VerticalAlignment="Center" FontWeight="Bold"/>
-                <Label Grid.Column="1" Content="{Binding DownloadSpeed}" VerticalAlignment="Center"/>
+                <Path Data="{StaticResource Speed}" Fill="White" Height="20" Width="20" Stretch="Uniform"/>
+                <Label Grid.Column="1" Content="Speed" VerticalAlignment="Center" FontWeight="Bold"/>
+                <Label Grid.Column="2" Content="{Binding DownloadSpeed}" VerticalAlignment="Center"/>
             </Grid>
         </Grid>
     </Border>

@@ -21,22 +21,26 @@
 
             <Grid Grid.Row="1" Background="{StaticResource Button.Static.Background}">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="30"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <Label Grid.Column="0" Content="File ID" VerticalAlignment="Center" FontWeight="Bold"/>
-                <TextBox Grid.Column="1" Text="{Binding FileID, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                <Path Data="{StaticResource FileID}" Fill="White" Height="20" Width="20" Stretch="Uniform"/>
+                <Label Grid.Column="1" Content="ID" VerticalAlignment="Center" FontWeight="Bold"/>
+                <TextBox Grid.Column="2" Text="{Binding FileID, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,10,0" VerticalAlignment="Center"/>
             </Grid>
 
             <Grid Grid.Row="2" Background="{StaticResource Button.Static.Border}">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="30"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <Label Grid.Column="0" Content="File Password" VerticalAlignment="Center" FontWeight="Bold"/>
-                <TextBox Grid.Column="1" Text="{Binding FilePassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                <Path Data="{StaticResource FileKey}" Fill="White" Height="20" Width="20" Stretch="Uniform"/>
+                <Label Grid.Column="1" Content="Key" VerticalAlignment="Center" FontWeight="Bold"/>
+                <TextBox Grid.Column="2" Text="{Binding FilePassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,10,0" VerticalAlignment="Center"/>
             </Grid>
         </Grid>
     </Border>

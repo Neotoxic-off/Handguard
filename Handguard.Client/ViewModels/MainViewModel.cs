@@ -20,7 +20,7 @@ namespace Handguard.Client.ViewModels
         private string? _title = "Handguard v1.0";
 
         [ObservableProperty]
-        private bool? _online = false;
+        private bool _online = false;
 
         [ObservableProperty]
         private string? _statusMessage;
@@ -39,6 +39,9 @@ namespace Handguard.Client.ViewModels
 
         [ObservableProperty]
         private bool _canDownload = true;
+
+        [ObservableProperty]
+        private bool _canPing = true;
 
         [ObservableProperty]
         private string? _downloadSpeed;
@@ -71,7 +74,16 @@ namespace Handguard.Client.ViewModels
 
         public MainViewModel()
         {
-            CheckServerStatus();
+            _ = InitializeAsync();
+        }
+
+        private async Task InitializeAsync()
+        {
+            Online = await Ping();
+
+            CanDownload = Online;
+            CanUpload = Online;
+            CanPing = true;
         }
 
         partial void OnIdChanged(string? value)
@@ -118,49 +130,55 @@ namespace Handguard.Client.ViewModels
             Lib.Models.UploadResponse? uploadResponse = null;
 
             Progress = 0;
-
             CanDownload = false;
             CanUpload = false;
+            CanPing = false;
 
-            if (Utils.Dialogs.File.ShowDialog().HasValue == true)
+            if (Online == true)
             {
-                if (Utils.Dialogs.File.FileName != string.Empty)
+                if (Utils.Dialogs.File.ShowDialog().HasValue == true)
                 {
-                    UploadFile = Utils.Dialogs.File.FileName;
-                    totalSize = new FileInfo(UploadFile).Length;
-                    result = await Lib.Client.UploadSecureAsync(UploadFile, Host, (bytesUploaded, speed) =>
+                    if (Utils.Dialogs.File.FileName != string.Empty)
                     {
-                        App.Current.Dispatcher.Invoke(() =>
+                        UploadFile = Utils.Dialogs.File.FileName;
+                        totalSize = new FileInfo(UploadFile).Length;
+                        result = await Lib.Client.UploadSecureAsync(UploadFile, Host, (bytesUploaded, speed) =>
                         {
-                            Progress = (double)bytesUploaded / totalSize * 100;
-                            UpdateLogs($"Uploading {Progress:F1}%");
-                            UploadSpeed = $"{(speed / (1024.0 * 1024.0)):0.00} MB/s";
+                            App.Current.Dispatcher.Invoke(() =>
+                            {
+                                Progress = (double)bytesUploaded / totalSize * 100;
+                                UpdateLogs($"Uploading {Progress:F1}%");
+                                UploadSpeed = $"{(speed / (1024.0 * 1024.0)):0.00} MB/s";
+                            });
                         });
-                    });
 
 
-                    if (result is not null)
-                    {
-                        Progress = 100;
-                        uploadResponse = JsonConvert.DeserializeObject<Lib.Models.UploadResponse>(result);
-                        if (uploadResponse is not null)
+                        if (result is not null)
                         {
-                            UpdateLogs($"File uploaded");
+                            Progress = 100;
+                            uploadResponse = JsonConvert.DeserializeObject<Lib.Models.UploadResponse>(result);
+                            if (uploadResponse is not null)
+                            {
+                                UpdateLogs($"File uploaded");
 
-                            Id = uploadResponse?.Id;
-                            Password = uploadResponse?.Password;
-                        } else
-                        {
-                            UpdateLogs($"File upload failed");
+                                Id = uploadResponse?.Id;
+                                Password = uploadResponse?.Password;
+                            }
+                            else
+                            {
+                                UpdateLogs($"File upload failed");
+                            }
                         }
-                    }
 
-                    Utils.Dialogs.File.FileName = string.Empty;
+                        Utils.Dialogs.File.FileName = string.Empty;
+                    }
                 }
+
+                CanDownload = true;
+                CanUpload = true;
             }
 
-            CanDownload = true;
-            CanUpload = true;
+            CanPing = true;
         }
 
         [RelayCommand]
@@ -172,40 +190,47 @@ namespace Handguard.Client.ViewModels
             Progress = 0;
             CanDownload = false;
             CanUpload = false;
+            CanPing = false;
 
-            if (Utils.Dialogs.Directory.ShowDialog().HasValue == true)
+            if (Online == true)
             {
-                if (Utils.Dialogs.Directory.FolderName != string.Empty)
+                if (Utils.Dialogs.Directory.ShowDialog().HasValue == true)
                 {
-                    DownloadFolder = Utils.Dialogs.Directory.FolderName;
-                    info = await Lib.Client.GetFileInfoAsync(Id, Password, Host);
-
-                    if (info is not null)
+                    if (Utils.Dialogs.Directory.FolderName != string.Empty)
                     {
-                        totalSize = info.Size;
-                        await Lib.Client.DownloadSecureAsync(Id, Password, Host, DownloadFolder,
-                            (bytesDownloaded, speed) =>
-                            {
-                                Progress = (double)bytesDownloaded / totalSize * 100;
-                                UpdateLogs($"Downloading {Progress:F1}%");
-                                DownloadSpeed = $"{(speed / (1024.0 * 1024.0)):0.00} MB/s";
-                            }
-                        );
+                        DownloadFolder = Utils.Dialogs.Directory.FolderName;
+                        info = await Lib.Client.GetFileInfoAsync(Id, Password, Host);
 
-                        Progress = 100;
+                        if (info is not null)
+                        {
+                            totalSize = info.Size;
+                            await Lib.Client.DownloadSecureAsync(Id, Password, Host, DownloadFolder,
+                                (bytesDownloaded, speed) =>
+                                {
+                                    Progress = (double)bytesDownloaded / totalSize * 100;
+                                    UpdateLogs($"Downloading {Progress:F1}%");
+                                    DownloadSpeed = $"{(speed / (1024.0 * 1024.0)):0.00} MB/s";
+                                }
+                            );
 
-                        UpdateLogs($"File downloaded");
+                            Progress = 100;
 
-                        Utils.Dialogs.Directory.FolderName = string.Empty;
-                    } else
-                    {
-                        UpdateLogs($"File download failed");
+                            UpdateLogs($"File downloaded");
+
+                            Utils.Dialogs.Directory.FolderName = string.Empty;
+                        }
+                        else
+                        {
+                            UpdateLogs($"File download failed");
+                        }
                     }
                 }
+
+                CanDownload = true;
+                CanUpload = true;
             }
 
-            CanDownload = true;
-            CanUpload = true;
+            CanPing = true;
         }
 
         [RelayCommand]
@@ -221,20 +246,56 @@ namespace Handguard.Client.ViewModels
             _settingsWindow.ShowDialog();
         }
 
-        private async void CheckServerStatus()
+        [RelayCommand]
+        private async Task PingServer()
+        {
+            CanDownload = false;
+            CanUpload = false;
+            CanPing = false;
+
+            if (await Ping() == true)
+            {
+                Online = true;
+                CanDownload = true;
+                CanUpload = true;
+            }
+            else
+            {
+                Online = false;
+                CanDownload = false;
+                CanUpload = false;
+                UpdateLogs("Server is offline");
+            }
+
+            CanPing = true;
+        }
+
+        private async Task<bool> Ping()
         {
             HttpClient _httpClient = new HttpClient();
             HttpResponseMessage? response = null;
 
             try
             {
-                response = await _httpClient.GetAsync(_host);
+                response = await _httpClient.GetAsync(Host);
                 Online = response.IsSuccessStatusCode;
+
+                if (Online == true)
+                {
+                    UpdateLogs("Server is online");
+                }
+                else
+                {
+                    UpdateLogs("Server is offline");
+                }
+
             }
             catch (HttpRequestException)
             {
-                Online = false;
+                UpdateLogs("Server is offline");
             }
+
+            return Online;
         }
     }
 }

@@ -16,27 +16,31 @@
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0" Background="{StaticResource Button.Static.Border}">
-                <Label Content="Uploads" VerticalAlignment="Center" FontSize="20" FontWeight="Bold"/>
+                <Label Content="Upload" VerticalAlignment="Center" FontSize="20" FontWeight="Bold"/>
             </Grid>
 
             <Grid Grid.Row="1" Background="{StaticResource Button.Static.Background}">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="30"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <Label Grid.Column="0" Content="Upload file" VerticalAlignment="Center" FontWeight="Bold"/>
-                <Label Grid.Column="1" Content="{Binding UploadFile}" VerticalAlignment="Center"/>
+                <Path Data="{StaticResource File}" Fill="White" Height="20" Width="20" Stretch="Uniform"/>
+                <Label Grid.Column="1" Content="File" VerticalAlignment="Center" FontWeight="Bold"/>
+                <Label Grid.Column="2" Content="{Binding UploadFile}" VerticalAlignment="Center"/>
             </Grid>
 
             <Grid Grid.Row="2" Background="{StaticResource Button.Static.Border}">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="30"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <Label Grid.Column="0" Content="Upload speed" VerticalAlignment="Center" FontWeight="Bold"/>
-                <Label Grid.Column="1" Content="{Binding UploadSpeed}" VerticalAlignment="Center"/>
+                <Path Data="{StaticResource Speed}" Fill="White" Height="20" Width="20" Stretch="Uniform"/>
+                <Label Grid.Column="1" Content="Speed" VerticalAlignment="Center" FontWeight="Bold"/>
+                <Label Grid.Column="2" Content="{Binding UploadSpeed}" VerticalAlignment="Center"/>
             </Grid>
         </Grid>
     </Border>
