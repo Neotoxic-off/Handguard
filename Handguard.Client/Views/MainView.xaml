@@ -38,16 +38,16 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <Grid Grid.Column="0" Margin="10">
+            <Grid Grid.Column="0" Margin="20,10,20,10">
                 <local:DownloadView Grid.Row="0"/>
             </Grid>
 
-            <Grid Grid.Column="1" Margin="10">
+            <Grid Grid.Column="1" Margin="20,10,20,10">
                 <local:UploadView Grid.Row="0"/>
             </Grid>
         </Grid>
 
-        <local:FileInformationView Grid.Row="2" Margin="10"/>
+        <local:FileInformationView Grid.Row="2" Margin="20,10,20,10"/>
 
         <Grid Grid.Row="3" Margin="10" VerticalAlignment="Center" HorizontalAlignment="Center">
             <Grid.ColumnDefinitions>

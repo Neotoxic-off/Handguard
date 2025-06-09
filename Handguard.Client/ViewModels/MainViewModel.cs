@@ -83,6 +83,12 @@ namespace Handguard.Client.ViewModels
         }
 
         [RelayCommand]
+        private void Copy(string value)
+        {
+            Clipboard.SetText(value);
+        }
+
+        [RelayCommand]
         private async Task Upload()
         {
             string? result = null;
@@ -112,7 +118,6 @@ namespace Handguard.Client.ViewModels
                             });
                         });
 
-
                         if (result is not null)
                         {
                             Progress = 100;
@@ -128,9 +133,12 @@ namespace Handguard.Client.ViewModels
                             {
                                 UpdateLogs($"File upload failed");
                             }
+                        } else
+                        {
+                            UpdateLogs($"File upload failed");
                         }
 
-                        Utils.Dialogs.File.FileName = string.Empty;
+                            Utils.Dialogs.File.FileName = string.Empty;
                     }
                 }
 

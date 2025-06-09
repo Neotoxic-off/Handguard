@@ -24,11 +24,15 @@
                     <ColumnDefinition Width="30"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="50"/>
                 </Grid.ColumnDefinitions>
 
                 <Path Data="{StaticResource FileID}" Fill="White" Height="15" Width="15" Stretch="Uniform"/>
                 <Label Grid.Column="1" Content="ID" VerticalAlignment="Center" FontWeight="Bold"/>
-                <TextBox Grid.Column="2" Text="{Binding Id, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBox Grid.Column="2" Height="20" Margin="10,0,10,0" Text="{Binding Id, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                <Button Grid.Column="3" Style="{StaticResource BorderButton}" Height="25" Width="25" Command="{Binding CopyCommand}" CommandParameter="{Binding Id}">
+                    <Path Data="{StaticResource Copy}" Fill="White" Height="15" Width="15" Stretch="Uniform"/>
+                </Button>
             </Grid>
 
             <Grid Grid.Row="2" Background="{StaticResource Button.Static.Border}">
@@ -36,11 +40,15 @@
                     <ColumnDefinition Width="30"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="50"/>
                 </Grid.ColumnDefinitions>
 
                 <Path Data="{StaticResource FileKey}" Fill="White" Height="15" Width="15" Stretch="Uniform"/>
                 <Label Grid.Column="1" Content="Key" VerticalAlignment="Center" FontWeight="Bold"/>
-                <TextBox Grid.Column="2" Text="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBox Grid.Column="2" Height="20" Margin="10,0,10,0" Text="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                <Button Grid.Column="3" Style="{StaticResource BorderButton}" Height="25" Width="25" Command="{Binding CopyCommand}" CommandParameter="{Binding Password}">
+                    <Path Data="{StaticResource Copy}" Fill="White" Height="15" Width="15" Stretch="Uniform"/>
+                </Button>
             </Grid>
         </Grid>
     </Border>

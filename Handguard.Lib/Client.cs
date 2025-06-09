@@ -18,13 +18,30 @@ namespace Handguard.Lib
             using FileStream fileStream = File.OpenRead(filePath);
             using StreamContent rawContent = new StreamContent(fileStream);
             using ContentStreamer uploadContent = new ContentStreamer(rawContent, progressCallback);
+            string? responseContent = null;
 
             uploadContent.Headers.ContentType = new MediaTypeHeaderValue(Constants.HEADER_APPLICATION_STREAM);
             form.Add(uploadContent, "file", Path.GetFileName(filePath));
-            HttpResponseMessage response = await httpClient.PostAsync($"{serverUrl}/upload", form);
-            response.EnsureSuccessStatusCode();
 
-            return await response.Content.ReadAsStringAsync();
+            HttpResponseMessage response;
+
+            try
+            {
+                response = await httpClient.PostAsync($"{serverUrl}/upload", form);
+            }
+            catch (HttpRequestException ex)
+            {
+                return null;
+            }
+
+            responseContent = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            return responseContent;
         }
 
         private static string GetFileNameFromContentDisposition(HttpResponseMessage response)

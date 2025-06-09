@@ -15,7 +15,7 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="border" Property="BorderBrush" Value="White"/>
-                            <Setter TargetName="border" Property="BorderThickness" Value="3"/>
+                            <Setter TargetName="border" Property="BorderThickness" Value="2"/>
                             <Setter TargetName="border" Property="Background" Value="{StaticResource Button.Static.Border}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">

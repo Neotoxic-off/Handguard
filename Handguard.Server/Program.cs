@@ -8,22 +8,37 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
-    serverOptions.Limits.MaxRequestBodySize = 10L * 1024 * 1024 * 1024;
+    serverOptions.Limits.MaxRequestBodySize = Settings.MaxUploadSize;
 });
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 10L * 1024 * 1024 * 1024;
+    options.MultipartBodyLengthLimit = Settings.MaxUploadSize;
 });
 
 builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
 builder.Services.AddHostedService<CleanupService>();
 builder.Services.AddSingleton<FileStorageService>(sp =>
 {
-    var storagePath = Path.Combine(AppContext.BaseDirectory, "storage");
+    string storagePath = Path.Combine(AppContext.BaseDirectory, "storage");
     return new FileStorageService(storagePath);
 });
 
 WebApplication app = builder.Build();
+
+app.Use(async (context, next) =>
+{
+    context.Request.EnableBuffering();
+
+    if (context.Request.ContentLength is long length && length > Settings.MaxUploadSize)
+    {
+        context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+        await context.Response.WriteAsync($"Upload failed: File size exceeds {Settings.MaxUploadSize} GB limit.");
+
+        return;
+    }
+
+    await next();
+});
 
 app.MapGet("/", () => Results.Ok("Handguard server is running"));
 

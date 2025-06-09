@@ -11,7 +11,7 @@
         WindowStartupLocation="CenterScreen"
         WindowStyle="SingleBorderWindow"
         Style="{DynamicResource CustomWindowStyle}"
-        Title="{Binding Title}" Height="600" Width="800">
+        Title="Handguard" Height="600" Width="800">
 
     <Grid>
         <views:MainView/>
