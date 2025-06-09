@@ -16,16 +16,22 @@
         <vm:SettingsViewModel/>
     </Window.DataContext>
 
-    <Grid VerticalAlignment="Center" Margin="50">
-        <StackPanel>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="50"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="50">
             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                <Label Content="Server address:" FontWeight="Bold"/>
-                <Label Content="{Binding Host}"/>
+                <Label Content="Server address:" FontWeight="Bold" Margin="0,0,10,0"/>
+                <TextBox Text="{Binding Settings.Host}" Width="200" Height="20"/>
             </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                <Label Content="Connected to server:" FontWeight="Bold"/>
-                <Label Content="{Binding Online}"/>
-            </StackPanel>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
+            <Button Content="Save" Width="100" Height="30" Margin="0,0,10,0" Command="{Binding SaveCommand}"/>
+            <Button Content="Cancel" Width="100" Height="30" Margin="0,0,0,0" Command="{Binding CancelCommand}"/>
         </StackPanel>
     </Grid>
 </Window>

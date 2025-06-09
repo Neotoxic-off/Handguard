@@ -17,9 +17,6 @@ namespace Handguard.Client.ViewModels
     public partial class MainViewModel : ObservableObject
     {
         [ObservableProperty]
-        private string? _title = "Handguard v1.0";
-
-        [ObservableProperty]
         private bool _online = false;
 
         [ObservableProperty]
@@ -30,9 +27,6 @@ namespace Handguard.Client.ViewModels
 
         [ObservableProperty]
         private string? _password;
-
-        [ObservableProperty]
-        private string _host = "http://127.0.0.1:5000";
 
         [ObservableProperty]
         private bool _canUpload = true;
@@ -62,10 +56,28 @@ namespace Handguard.Client.ViewModels
         private string? _downloadFolder = string.Empty;
 
         private Windows.SettingsWindow? _settingsWindow;
+        private Settings? _settings;
 
         public MainViewModel()
         {
+            LoadSettings();
+
             _ = InitializeAsync();
+        }
+
+        private void LoadSettings()
+        {
+            _settings = new Settings();
+
+            if (File.Exists(Constants.SettingsFilePath) == true)
+            {
+                _settings = JsonConvert.DeserializeObject<Settings>(
+                    File.ReadAllText(Constants.SettingsFilePath)
+                );
+            } else
+            {
+                _settings.Host = Constants.DefaultHost;
+            }
         }
 
         private async Task InitializeAsync()
@@ -108,7 +120,7 @@ namespace Handguard.Client.ViewModels
                     {
                         UploadFile = Utils.Dialogs.File.FileName;
                         totalSize = new FileInfo(UploadFile).Length;
-                        result = await Lib.Client.UploadSecureAsync(UploadFile, Host, (bytesUploaded, speed) =>
+                        result = await Lib.Client.UploadSecureAsync(UploadFile, _settings.Host, (bytesUploaded, speed) =>
                         {
                             App.Current.Dispatcher.Invoke(() =>
                             {
@@ -167,12 +179,12 @@ namespace Handguard.Client.ViewModels
                     if (Utils.Dialogs.Directory.FolderName != string.Empty)
                     {
                         DownloadFolder = Utils.Dialogs.Directory.FolderName;
-                        info = await Lib.Client.GetFileInfoAsync(Id, Password, Host);
+                        info = await Lib.Client.GetFileInfoAsync(Id, Password, _settings.Host);
 
                         if (info is not null)
                         {
                             totalSize = info.Size;
-                            await Lib.Client.DownloadSecureAsync(Id, Password, Host, DownloadFolder,
+                            await Lib.Client.DownloadSecureAsync(Id, Password, _settings.Host, DownloadFolder,
                                 (bytesDownloaded, speed) =>
                                 {
                                     Progress = (double)bytesDownloaded / totalSize * 100;
@@ -207,8 +219,7 @@ namespace Handguard.Client.ViewModels
             _settingsWindow = new Windows.SettingsWindow();
             _settingsWindow.DataContext = new SettingsViewModel()
             {
-                Online = Online,
-                Host = Host
+                Settings = _settings
             };
 
             _settingsWindow.ShowDialog();
@@ -245,7 +256,7 @@ namespace Handguard.Client.ViewModels
 
             try
             {
-                response = await _httpClient.GetAsync(Host);
+                response = await _httpClient.GetAsync(_settings.Host);
                 Online = response.IsSuccessStatusCode;
 
                 if (Online == true)
