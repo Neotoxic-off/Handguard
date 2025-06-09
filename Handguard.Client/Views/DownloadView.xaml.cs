@@ -13,14 +13,14 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace Handguard.Client.Views.Components
+namespace Handguard.Client.Views
 {
     /// <summary>
-    /// Interaction logic for SpinnerView.xaml
+    /// Interaction logic for DownloadView.xaml
     /// </summary>
-    public partial class SpinnerView : UserControl
+    public partial class DownloadView : UserControl
     {
-        public SpinnerView()
+        public DownloadView()
         {
             InitializeComponent();
         }

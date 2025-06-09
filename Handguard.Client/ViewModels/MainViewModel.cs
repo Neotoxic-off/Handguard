@@ -41,41 +41,100 @@ namespace Handguard.Client.ViewModels
         private bool _canDownload = true;
 
         [ObservableProperty]
-        private double _progress = 0.0;
+        private string? _downloadSpeed;
 
         [ObservableProperty]
-        private string _progressMessage = string.Empty;
+        private string? _uploadSpeed;
 
-        private Windows.SettingsWindow _settingsWindow;
-        private Windows.FileCredentialsWindow _fileWindow;
+        [ObservableProperty]
+        private double? _progress = 0.0;
+
+        [ObservableProperty]
+        private string _logs = string.Empty;
+
+        [ObservableProperty]
+        private string? _uploadFile = string.Empty;
+
+        [ObservableProperty]
+        private string? _downloadFolder = string.Empty;
+
+        [ObservableProperty]
+        private DownloadViewModel _downloadViewModel = new DownloadViewModel();
+
+        [ObservableProperty]
+        private UploadViewModel _uploadViewModel = new UploadViewModel();
+
+        [ObservableProperty]
+        private FileInformationViewModel _fileInformationViewModel = new FileInformationViewModel();
+
+        private Windows.SettingsWindow? _settingsWindow;
 
         public MainViewModel()
         {
             CheckServerStatus();
         }
 
+        partial void OnIdChanged(string? value)
+        {
+            FileInformationViewModel.FileID = value;
+        }
+
+        partial void OnPasswordChanged(string? value)
+        {
+            FileInformationViewModel.FilePassword = value;
+        }
+
+        partial void OnUploadSpeedChanged(string? value)
+        {
+            UploadViewModel.UploadSpeed = value;
+        }
+
+        partial void OnDownloadSpeedChanged(string? value)
+        {
+            DownloadViewModel.DownloadSpeed = value;
+        }
+
+        partial void OnUploadFileChanged(string? value)
+        {
+            UploadViewModel.UploadFile = value;
+        }
+
+        partial void OnDownloadFolderChanged(string? value)
+        {
+            DownloadViewModel.DownloadFolder = value;
+        }
+
+
+        private void UpdateLogs(string message)
+        {
+            Logs = message;
+        }
+
         [RelayCommand]
         private async Task Upload()
         {
-            string? file = null;
             string? result = null;
             long totalSize = 0;
             Lib.Models.UploadResponse? uploadResponse = null;
 
             Progress = 0;
 
+            CanDownload = false;
+            CanUpload = false;
+
             if (Utils.Dialogs.File.ShowDialog().HasValue == true)
             {
                 if (Utils.Dialogs.File.FileName != string.Empty)
                 {
-                    file = Utils.Dialogs.File.FileName;
-                    totalSize = new FileInfo(file).Length;
-                    result = await Lib.Client.UploadSecureAsync(file, Host, (bytesUploaded) =>
+                    UploadFile = Utils.Dialogs.File.FileName;
+                    totalSize = new FileInfo(UploadFile).Length;
+                    result = await Lib.Client.UploadSecureAsync(UploadFile, Host, (bytesUploaded, speed) =>
                     {
                         App.Current.Dispatcher.Invoke(() =>
                         {
                             Progress = (double)bytesUploaded / totalSize * 100;
-                            ProgressMessage = $"{Progress:F1}%";
+                            UpdateLogs($"Uploading {Progress:F1}%");
+                            UploadSpeed = $"{(speed / (1024.0 * 1024.0)):0.00} MB/s";
                         });
                     });
 
@@ -84,50 +143,69 @@ namespace Handguard.Client.ViewModels
                     {
                         Progress = 100;
                         uploadResponse = JsonConvert.DeserializeObject<Lib.Models.UploadResponse>(result);
-                        Id = uploadResponse?.Id;
-                        Password = uploadResponse?.Password;
+                        if (uploadResponse is not null)
+                        {
+                            UpdateLogs($"File uploaded");
 
-                        DisplayFileCredentials(Id, Password);
+                            Id = uploadResponse?.Id;
+                            Password = uploadResponse?.Password;
+                        } else
+                        {
+                            UpdateLogs($"File upload failed");
+                        }
                     }
 
                     Utils.Dialogs.File.FileName = string.Empty;
                 }
             }
+
+            CanDownload = true;
+            CanUpload = true;
         }
 
         [RelayCommand]
         private async Task Download()
         {
+            long totalSize = 0;
+            Lib.Models.FileInfoResponse? info = null;
+
             Progress = 0;
+            CanDownload = false;
+            CanUpload = false;
 
             if (Utils.Dialogs.Directory.ShowDialog().HasValue == true)
             {
                 if (Utils.Dialogs.Directory.FolderName != string.Empty)
                 {
-                    GetFileCredentials();
+                    DownloadFolder = Utils.Dialogs.Directory.FolderName;
+                    info = await Lib.Client.GetFileInfoAsync(Id, Password, Host);
 
-                    string saveFolder = Utils.Dialogs.Directory.FolderName;
-
-                    var info = await Lib.Client.GetFileInfoAsync(Id, Password, Host);
-                    if (info == null)
+                    if (info is not null)
                     {
-                        MessageBox.Show("Failed to get file info.");
-                        return;
+                        totalSize = info.Size;
+                        await Lib.Client.DownloadSecureAsync(Id, Password, Host, DownloadFolder,
+                            (bytesDownloaded, speed) =>
+                            {
+                                Progress = (double)bytesDownloaded / totalSize * 100;
+                                UpdateLogs($"Downloading {Progress:F1}%");
+                                DownloadSpeed = $"{(speed / (1024.0 * 1024.0)):0.00} MB/s";
+                            }
+                        );
+
+                        Progress = 100;
+
+                        UpdateLogs($"File downloaded");
+
+                        Utils.Dialogs.Directory.FolderName = string.Empty;
+                    } else
+                    {
+                        UpdateLogs($"File download failed");
                     }
-
-                    long totalSize = info.Size;
-
-                    await Lib.Client.DownloadSecureAsync(Id, Password, Host, saveFolder, (bytesDownloaded) =>
-                    {
-                        Progress = (double)bytesDownloaded / totalSize * 100;
-                        ProgressMessage = $"{Progress:F1}%";
-                    });
-
-                    Progress = 100;
-
-                    Utils.Dialogs.Directory.FolderName = string.Empty;
                 }
             }
+
+            CanDownload = true;
+            CanUpload = true;
         }
 
         [RelayCommand]
@@ -141,35 +219,6 @@ namespace Handguard.Client.ViewModels
             };
 
             _settingsWindow.ShowDialog();
-        }
-
-        private void DisplayFileCredentials(string? id, string? password)
-        {
-            _fileWindow = new Windows.FileCredentialsWindow();
-            FileCredentialsViewModel? context = _fileWindow.DataContext as FileCredentialsViewModel;
-
-            context = new FileCredentialsViewModel()
-            {
-                ID = id ?? string.Empty,
-                Password = password ?? string.Empty
-            };
-
-            _fileWindow.DataContext = context;
-            _fileWindow.ShowDialog();
-        }
-
-        private void GetFileCredentials()
-        {
-            _fileWindow = new Windows.FileCredentialsWindow();
-            FileCredentialsViewModel? context = _fileWindow.DataContext as FileCredentialsViewModel;
-
-            context = new FileCredentialsViewModel();
-
-            _fileWindow.DataContext = context;
-            _fileWindow.ShowDialog();
-
-            Id = context.ID;
-            Password = context.Password;
         }
 
         private async void CheckServerStatus()

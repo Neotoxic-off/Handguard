@@ -11,51 +11,83 @@ namespace Handguard.Lib
 {
     public static class Client
     {
-        private const int MinBufferSize = 8192;
-        private const int MaxBufferSize = 262144;
-
-        public static async Task<string?> UploadSecureAsync(string filePath, string serverUrl, Action<long>? progressCallback = null)
+        public static async Task<string?> UploadSecureAsync(string filePath, string serverUrl, Action<long, double>? progressCallback = null)
         {
             using HttpClient httpClient = new HttpClient();
             using MultipartFormDataContent form = new MultipartFormDataContent();
-
             using FileStream fileStream = File.OpenRead(filePath);
             using StreamContent rawContent = new StreamContent(fileStream);
-            using StreamWithProgressContent uploadContent = new StreamWithProgressContent(rawContent, progressCallback);
+            using ContentStreamer uploadContent = new ContentStreamer(rawContent, progressCallback);
 
-            uploadContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-
+            uploadContent.Headers.ContentType = new MediaTypeHeaderValue(Constants.HEADER_APPLICATION_STREAM);
             form.Add(uploadContent, "file", Path.GetFileName(filePath));
-
-            using HttpResponseMessage response = await httpClient.PostAsync($"{serverUrl}/upload", form);
+            HttpResponseMessage response = await httpClient.PostAsync($"{serverUrl}/upload", form);
             response.EnsureSuccessStatusCode();
 
             return await response.Content.ReadAsStringAsync();
         }
 
-        public static async Task DownloadSecureAsync(string id, string password, string serverUrl, string saveToDir, Action<long>? progressCallback = null)
+        private static string GetFileNameFromContentDisposition(HttpResponseMessage response)
         {
+            if (response.Content.Headers.ContentDisposition != null)
+            {
+                if (!string.IsNullOrEmpty(response.Content.Headers.ContentDisposition.FileNameStar))
+                {
+                    return response.Content.Headers.ContentDisposition.FileNameStar;
+                }
+                else if (!string.IsNullOrEmpty(response.Content.Headers.ContentDisposition.FileName))
+                {
+                    return response.Content.Headers.ContentDisposition.FileName;
+                }
+            }
+
+            return string.Empty;
+        }
+
+        public static async Task DownloadSecureAsync(string id, string password, string serverUrl, string saveToDir, Action<long, double>? progressCallback = null)
+        {
+            int bytesRead = 0;
+            long totalRead = 0;
+            string? fileName = null;
+            string? savePath = null;
+            byte[] buffer = new byte[8192];
             string url = $"{serverUrl}/download?id={WebUtility.UrlEncode(id)}&pass={WebUtility.UrlEncode(password)}";
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            long lastBytes = 0;
+            double speed = 0;
 
             using HttpClient httpClient = new HttpClient();
             using HttpResponseMessage response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
             response.EnsureSuccessStatusCode();
 
-            string? fileName = null;
+            fileName = CleanFileName(GetFileNameFromContentDisposition(response), id);
+            savePath = Path.Combine(saveToDir, fileName);
 
-            if (response.Content.Headers.ContentDisposition != null)
+            await using Stream responseStream = await response.Content.ReadAsStreamAsync();
+            await using FileStream fs = new FileStream(savePath, FileMode.Create, FileAccess.Write);
+
+            while ((bytesRead = await responseStream.ReadAsync(buffer.AsMemory(0, buffer.Length))) > 0)
             {
-                if (!string.IsNullOrEmpty(response.Content.Headers.ContentDisposition.FileNameStar))
+                await fs.WriteAsync(buffer.AsMemory(0, bytesRead));
+                totalRead += bytesRead;
+
+                if (stopwatch.ElapsedMilliseconds >= 1000)
                 {
-                    fileName = response.Content.Headers.ContentDisposition.FileNameStar;
+                    long bytesSinceLast = totalRead - lastBytes;
+                    speed = bytesSinceLast / (stopwatch.ElapsedMilliseconds / 1000.0);
+
+                    stopwatch.Restart();
+                    lastBytes = totalRead;
                 }
-                else if (!string.IsNullOrEmpty(response.Content.Headers.ContentDisposition.FileName))
-                {
-                    fileName = response.Content.Headers.ContentDisposition.FileName;
-                }
+
+                progressCallback?.Invoke(totalRead, speed);
             }
 
+        }
+
+        private static string CleanFileName(string fileName, string id)
+        {
             if (string.IsNullOrEmpty(fileName))
             {
                 fileName = $"{id}.bin";
@@ -66,91 +98,27 @@ namespace Handguard.Lib
                 fileName = fileName.Substring(1, fileName.Length - 2);
             }
 
-            string savePath = Path.Combine(saveToDir, fileName);
-
-            await using Stream responseStream = await response.Content.ReadAsStreamAsync();
-            await using FileStream fs = new FileStream(savePath, FileMode.Create, FileAccess.Write);
-
-            byte[] buffer = new byte[8192];
-            long totalRead = 0;
-            int bytesRead;
-
-            while ((bytesRead = await responseStream.ReadAsync(buffer.AsMemory(0, buffer.Length))) > 0)
-            {
-                await fs.WriteAsync(buffer.AsMemory(0, bytesRead));
-                totalRead += bytesRead;
-                progressCallback?.Invoke(totalRead);
-            }
+            return fileName;
         }
 
         public static async Task<Models.FileInfoResponse?> GetFileInfoAsync(string id, string password, string serverUrl)
         {
             string url = $"{serverUrl}/info?id={WebUtility.UrlEncode(id)}&pass={WebUtility.UrlEncode(password)}";
-
+            string? json = null;
             using HttpClient httpClient = new HttpClient();
             using HttpResponseMessage response = await httpClient.GetAsync(url);
 
-            if (!response.IsSuccessStatusCode)
-                return null;
-
-            string json = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<Models.FileInfoResponse>(json, new JsonSerializerOptions
+            if (response.IsSuccessStatusCode)
             {
-                PropertyNameCaseInsensitive = true
-            });
-        }
+                json = await response.Content.ReadAsStringAsync();
 
-        private class StreamWithProgressContent : HttpContent
-        {
-            private readonly HttpContent _originalContent;
-            private readonly Action<long>? _progress;
-            private int _bufferSize = MinBufferSize;
-
-            public StreamWithProgressContent(HttpContent content, Action<long>? progress)
-            {
-                _originalContent = content;
-                _progress = progress;
-
-                foreach (KeyValuePair<string, IEnumerable<string>> header in _originalContent.Headers)
+                return JsonSerializer.Deserialize<Models.FileInfoResponse>(json, new JsonSerializerOptions
                 {
-                    Headers.TryAddWithoutValidation(header.Key, header.Value);
-                }
+                    PropertyNameCaseInsensitive = true
+                });
             }
 
-            protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context)
-            {
-                long total = 0;
-                byte[] buffer = new byte[_bufferSize];
-                using Stream inputStream = await _originalContent.ReadAsStreamAsync();
-
-                while (true)
-                {
-                    int read = await inputStream.ReadAsync(buffer, 0, buffer.Length);
-                    if (read <= 0)
-                        break;
-
-                    await stream.WriteAsync(buffer, 0, read);
-                    total += read;
-                    _progress?.Invoke(total);
-
-                    if (_bufferSize < MaxBufferSize)
-                    {
-                        _bufferSize = Math.Min(_bufferSize * 2, MaxBufferSize);
-                    }
-                }
-            }
-
-            protected override bool TryComputeLength(out long length)
-            {
-                if (_originalContent.Headers.ContentLength.HasValue)
-                {
-                    length = _originalContent.Headers.ContentLength.Value;
-                    return true;
-                }
-
-                length = -1;
-                return false;
-            }
+            return null;
         }
     }
 }
