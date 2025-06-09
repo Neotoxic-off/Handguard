@@ -61,15 +61,6 @@ namespace Handguard.Client.ViewModels
         [ObservableProperty]
         private string? _downloadFolder = string.Empty;
 
-        [ObservableProperty]
-        private DownloadViewModel _downloadViewModel = new DownloadViewModel();
-
-        [ObservableProperty]
-        private UploadViewModel _uploadViewModel = new UploadViewModel();
-
-        [ObservableProperty]
-        private FileInformationViewModel _fileInformationViewModel = new FileInformationViewModel();
-
         private Windows.SettingsWindow? _settingsWindow;
 
         public MainViewModel()
@@ -85,37 +76,6 @@ namespace Handguard.Client.ViewModels
             CanUpload = Online;
             CanPing = true;
         }
-
-        partial void OnIdChanged(string? value)
-        {
-            FileInformationViewModel.FileID = value;
-        }
-
-        partial void OnPasswordChanged(string? value)
-        {
-            FileInformationViewModel.FilePassword = value;
-        }
-
-        partial void OnUploadSpeedChanged(string? value)
-        {
-            UploadViewModel.UploadSpeed = value;
-        }
-
-        partial void OnDownloadSpeedChanged(string? value)
-        {
-            DownloadViewModel.DownloadSpeed = value;
-        }
-
-        partial void OnUploadFileChanged(string? value)
-        {
-            UploadViewModel.UploadFile = value;
-        }
-
-        partial void OnDownloadFolderChanged(string? value)
-        {
-            DownloadViewModel.DownloadFolder = value;
-        }
-
 
         private void UpdateLogs(string message)
         {
@@ -240,7 +200,7 @@ namespace Handguard.Client.ViewModels
             _settingsWindow.DataContext = new SettingsViewModel()
             {
                 Online = Online,
-                Host = _host
+                Host = Host
             };
 
             _settingsWindow.ShowDialog();

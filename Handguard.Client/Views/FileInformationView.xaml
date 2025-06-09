@@ -26,9 +26,9 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <Path Data="{StaticResource FileID}" Fill="White" Height="20" Width="20" Stretch="Uniform"/>
+                <Path Data="{StaticResource FileID}" Fill="White" Height="15" Width="15" Stretch="Uniform"/>
                 <Label Grid.Column="1" Content="ID" VerticalAlignment="Center" FontWeight="Bold"/>
-                <TextBox Grid.Column="2" Text="{Binding FileID, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="2" Text="{Binding Id, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
             </Grid>
 
             <Grid Grid.Row="2" Background="{StaticResource Button.Static.Border}">
@@ -38,9 +38,9 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <Path Data="{StaticResource FileKey}" Fill="White" Height="20" Width="20" Stretch="Uniform"/>
+                <Path Data="{StaticResource FileKey}" Fill="White" Height="15" Width="15" Stretch="Uniform"/>
                 <Label Grid.Column="1" Content="Key" VerticalAlignment="Center" FontWeight="Bold"/>
-                <TextBox Grid.Column="2" Text="{Binding FilePassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="2" Text="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
             </Grid>
         </Grid>
     </Border>

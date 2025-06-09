@@ -26,9 +26,9 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <Path Data="{StaticResource Folder}" Fill="White" Height="20" Width="20" Stretch="Uniform"/>
+                <Path Data="{StaticResource Folder}" Fill="White" Height="15" Width="15" Stretch="Uniform"/>
                 <Label Grid.Column="1" Content="Folder" VerticalAlignment="Center" FontWeight="Bold"/>
-                <Label Grid.Column="2" Content="{Binding DownloadFolder}" VerticalAlignment="Center"/>
+                <Label Grid.Column="2" Content="{Binding DownloadFolder, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"/>
             </Grid>
 
             <Grid Grid.Row="2" Background="{StaticResource Button.Static.Border}">
@@ -38,9 +38,9 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <Path Data="{StaticResource Speed}" Fill="White" Height="20" Width="20" Stretch="Uniform"/>
+                <Path Data="{StaticResource Speed}" Fill="White" Height="15" Width="15" Stretch="Uniform"/>
                 <Label Grid.Column="1" Content="Speed" VerticalAlignment="Center" FontWeight="Bold"/>
-                <Label Grid.Column="2" Content="{Binding DownloadSpeed}" VerticalAlignment="Center"/>
+                <Label Grid.Column="2" Content="{Binding DownloadSpeed, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"/>
             </Grid>
         </Grid>
     </Border>
